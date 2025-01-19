@@ -5,7 +5,7 @@
   const LINKS = [
   {
     "name": "ai搜索",
-    "link": "pages/@collection/ai-search.html",
+    "link": "ai-search.html",
     "desc": "网站目录索引"
   }
 ];
