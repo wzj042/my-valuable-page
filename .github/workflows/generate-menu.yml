@@ -16,7 +16,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v2
         with:
-          node-version: 16
+          node-version: 18
 
       # 3) 安装依赖（如果脚本需要外部依赖，比如 `npm install cheerio`）
       - name: Install dependencies
