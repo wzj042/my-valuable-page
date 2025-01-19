@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>目录索引</title>
+  
+</head>
+<body>
+  <h1>索引</h1>
+  <ul id="fileList"></ul>
+  <!-- script, 根据字符列表渲染超链接列表 -->
+  <script>
+    const fileList = document.getElementById('fileList');
+    const links = [
+      // name, link, title
+      ['字体图片生成', 'tools/get-font-text-img', '个人用于生成像素字体']
+    ]
+    links.forEach(([name, link, title]) => {
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = link;
+      a.textContent = name;
+      a.title = title;
+      li.appendChild(a);
+      fileList.appendChild(li);
+    });
+  </script>
+</body>
+</html>

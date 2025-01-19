@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>透明背景 PNG 文本生成器</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+    }
+    label {
+      display: inline-block;
+      margin-right: 10px;
+      margin-top: 10px;
+    }
+    input,
+    select {
+      margin-right: 20px;
+    }
+    .preview {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>透明背景 PNG 文本生成器</h1>
+
+<!-- 1. 字体操作区域 -->
+<div>
+  <!-- (A) “应用像素字体”按钮 -->
+  <button id="applyPixelFontBtn">应用像素字体</button>
+  <!-- (B) 本地 TTF 文件上传 -->
+  <label for="fontFile">或选择本地 TTF 字体文件:</label>
+  <input type="file" id="fontFile" accept=".ttf" />
+</div>
+
+<!-- 2. 输入文字 -->
+<div>
+  <label for="textInput">输入文字:</label>
+  <input type="text" id="textInput" />
+</div>
+
+<!-- 3. 字体大小 -->
+<div>
+  <label for="fontSize">字号(px):</label>
+  <input type="number" id="fontSize" min="1" max="300" />
+</div>
+
+<!-- 4. 文字颜色（含HEX输入框） -->
+<div>
+  <label for="fontColor">文字颜色:</label>
+  <input type="color" id="fontColor" /><br />
+  <label for="hexColorInput">或者输入十六进制:</label>
+  <input type="text" id="hexColorInput" maxlength="7" />
+</div>
+
+<!-- 5. 对齐方式 -->
+<div>
+  <label for="textAlignSelect">对齐方式:</label>
+  <select id="textAlignSelect">
+    <option value="left">左对齐</option>
+    <option value="center">居中</option>
+    <option value="right">右对齐</option>
+  </select>
+</div>
+
+<!-- 6. 排列方式（横排、竖排） -->
+<div>
+  <label for="directionSelect">排列方向:</label>
+  <select id="directionSelect">
+    <option value="horizontal">横排</option>
+    <option value="vertical">竖排</option>
+  </select>
+</div>
+
+<!-- 7. 缩放参数（手动） -->
+<div>
+  <label for="scaleInput">缩放比例(>0):</label>
+  <input type="number" id="scaleInput" step="0.1" />
+</div>
+
+<!-- 8. 自动适配目标区域 -->
+<div>
+  <input type="checkbox" id="autoFitCheckbox" />
+  <label for="autoFitCheckbox">自动适配目标区域</label>
+</div>
+<div>
+  <label for="targetWidth">目标区域宽(px):</label>
+  <input type="number" id="targetWidth" />
+  <label for="targetHeight">目标区域高(px):</label>
+  <input type="number" id="targetHeight" />
+</div>
+
+<!-- 生成按钮 -->
+<div>
+  <button id="generateBtn">生成PNG</button>
+</div>
+
+<!-- 预览区域 -->
+<div class="preview">
+  <h2>预览</h2>
+  <canvas id="previewCanvas"></canvas>
+</div>
+
+<!-- 显示当前生成图片的尺寸 -->
+<div>
+  <span>最终图像尺寸：<span id="sizeInfo">?</span></span>
+</div>
+
+<!-- 下载链接 -->
+<div>
+  <a id="downloadLink" href="#" download="text.png" style="display: none">下载 PNG 图片</a>
+</div>
+
+<script>
+  // ==================== 一些默认值，用于首次进入页面时初始化 ====================
+  const defaultConfig = {
+    text:           "恭喜发财",
+    fontSize:       72,
+    fontColor:      "#000000",  // 用于 <input type="color">
+    hexColor:       "#000000",  // 同步十六进制输入
+    textAlign:      "center",
+    direction:      "horizontal",
+    scale:          1,
+    autoFit:        false,
+    targetWidth:    300,
+    targetHeight:   300,
+  };
+
+  // ==================== 全局状态 ====================
+  // 用于标记当前使用的“动态注册字体名称”
+  // 可能来自“应用像素字体”或“本地 TTF 上传”
+  let dynamicFontName = null;
+  // 默认使用系统 sans-serif
+  let currentFontFamily = "sans-serif";
+
+  // ==================== 获取页面元素 ====================
+  const applyPixelFontBtn  = document.getElementById("applyPixelFontBtn");
+  const fontFileInput      = document.getElementById("fontFile");
+  const textInput          = document.getElementById("textInput");
+  const fontSizeInput      = document.getElementById("fontSize");
+  const fontColorInput     = document.getElementById("fontColor");
+  const hexColorInput      = document.getElementById("hexColorInput");
+  const textAlignSelect    = document.getElementById("textAlignSelect");
+  const directionSelect    = document.getElementById("directionSelect");
+  const scaleInput         = document.getElementById("scaleInput");
+  const autoFitCheckbox    = document.getElementById("autoFitCheckbox");
+  const targetWidthInput   = document.getElementById("targetWidth");
+  const targetHeightInput  = document.getElementById("targetHeight");
+
+  const generateBtn        = document.getElementById("generateBtn");
+  const previewCanvas      = document.getElementById("previewCanvas");
+  const sizeInfo           = document.getElementById("sizeInfo");
+  const downloadLink       = document.getElementById("downloadLink");
+
+  // ==================== 事件绑定 ====================
+  // (A) 应用像素字体
+  applyPixelFontBtn.addEventListener("click", () => {
+    applyPixelFont();
+  });
+
+  // (B) 本地 TTF 文件上传，生成动态 @font-face
+  fontFileInput.addEventListener("change", () => {
+    const file = fontFileInput.files[0];
+    if (!file) return;
+
+    dynamicFontName = "DynamicFont_" + Math.random().toString(36).substring(2);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const fontData = event.target.result;
+      const style = document.createElement("style");
+      style.innerHTML = `
+        @font-face {
+          font-family: '${dynamicFontName}';
+          src: url(${fontData});
+        }
+      `;
+      document.head.appendChild(style);
+
+      currentFontFamily = dynamicFontName;
+      // 等待字体加载完成，再生成图像
+      document.fonts.load(`10px "${dynamicFontName}"`).then(() => {
+        generateImage();
+      });
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // (C) “生成PNG”按钮
+  generateBtn.addEventListener("click", generateImage);
+
+  // (D) 所有配置输入都监听 input 事件 => 触发更新 & 存储到 localStorage
+  const configInputs = [
+    textInput,
+    fontSizeInput,
+    fontColorInput,
+    hexColorInput,
+    textAlignSelect,
+    directionSelect,
+    scaleInput,
+    autoFitCheckbox,
+    targetWidthInput,
+    targetHeightInput,
+  ];
+  configInputs.forEach((input) => {
+    input.addEventListener("input", () => {
+      saveConfigToLocalStorage();
+      generateImage();
+    });
+  });
+
+  // (E) 同步颜色选择器与 HEX 输入
+  fontColorInput.addEventListener("input", () => {
+    hexColorInput.value = fontColorInput.value.toUpperCase();
+    saveConfigToLocalStorage();
+    generateImage();
+  });
+  hexColorInput.addEventListener("input", () => {
+    const hexValue = hexColorInput.value;
+    if (/^#[0-9A-Fa-f]{6}$/.test(hexValue)) {
+      fontColorInput.value = hexValue.toUpperCase();
+      saveConfigToLocalStorage();
+      generateImage();
+    }
+  });
+
+  // ==================== 页面加载时，从 localStorage 读取配置并初始化 ====================
+  window.addEventListener("DOMContentLoaded", () => {
+    loadConfigFromLocalStorage();
+    // 首次执行预览
+    generateImage();
+  });
+
+  // ==================== 函数实现 ====================
+  /**
+   * 读取配置（若有）并填充到各个表单项；若本地无存储，则使用默认值。
+   */
+  function loadConfigFromLocalStorage() {
+    // 尝试读取 localStorage，如果读不到，就用 defaultConfig
+    const saved = {
+      text:         localStorage.getItem("cfg_text"),
+      fontSize:     localStorage.getItem("cfg_fontSize"),
+      fontColor:    localStorage.getItem("cfg_fontColor"),
+      hexColor:     localStorage.getItem("cfg_hexColor"),
+      textAlign:    localStorage.getItem("cfg_textAlign"),
+      direction:    localStorage.getItem("cfg_direction"),
+      scale:        localStorage.getItem("cfg_scale"),
+      autoFit:      localStorage.getItem("cfg_autoFit"),
+      targetWidth:  localStorage.getItem("cfg_targetWidth"),
+      targetHeight: localStorage.getItem("cfg_targetHeight"),
+    };
+
+    // 如果某项读不到，就用默认值
+    textInput.value         = saved.text         || defaultConfig.text;
+    fontSizeInput.value     = saved.fontSize     || defaultConfig.fontSize;
+    fontColorInput.value    = saved.fontColor    || defaultConfig.fontColor;
+    hexColorInput.value     = saved.hexColor     || defaultConfig.hexColor;
+    textAlignSelect.value   = saved.textAlign    || defaultConfig.textAlign;
+    directionSelect.value   = saved.direction    || defaultConfig.direction;
+    scaleInput.value        = saved.scale        || defaultConfig.scale;
+    autoFitCheckbox.checked = (saved.autoFit === "true") ? true : defaultConfig.autoFit;
+    targetWidthInput.value  = saved.targetWidth  || defaultConfig.targetWidth;
+    targetHeightInput.value = saved.targetHeight || defaultConfig.targetHeight;
+  }
+
+  /**
+   * 将当前表单配置保存到 localStorage
+   */
+  function saveConfigToLocalStorage() {
+    localStorage.setItem("cfg_text",         textInput.value);
+    localStorage.setItem("cfg_fontSize",     fontSizeInput.value);
+    localStorage.setItem("cfg_fontColor",    fontColorInput.value);
+    localStorage.setItem("cfg_hexColor",     hexColorInput.value);
+    localStorage.setItem("cfg_textAlign",    textAlignSelect.value);
+    localStorage.setItem("cfg_direction",    directionSelect.value);
+    localStorage.setItem("cfg_scale",        scaleInput.value);
+    localStorage.setItem("cfg_autoFit",      autoFitCheckbox.checked);
+    localStorage.setItem("cfg_targetWidth",  targetWidthInput.value);
+    localStorage.setItem("cfg_targetHeight", targetHeightInput.value);
+  }
+
+  /**
+   * “应用像素字体”功能：动态创建 @font-face 并使用它
+   *   - 此处示例中固定使用 'assets/pixel.ttf' 作为像素字体
+   *   - 需等待字体加载完成后再刷新预览
+   */
+  function applyPixelFont() {
+    dynamicFontName = "PixelFont_" + Math.random().toString(36).substring(2);
+    const style = document.createElement("style");
+    style.innerHTML = `
+      @font-face {
+        font-family: '${dynamicFontName}';
+        src: url('assets/pixel.ttf');
+      }
+    `;
+    document.head.appendChild(style);
+
+    currentFontFamily = dynamicFontName;
+    // 等待字体加载后再生成预览
+    document.fonts.load(`10px "${dynamicFontName}"`).then(() => {
+      console.log("像素字体已加载完毕");
+      generateImage();
+    }).catch(err => {
+      console.error("像素字体加载失败:", err);
+    });
+  }
+
+  /**
+   * 核心的生成图像并更新预览逻辑
+   */
+  function generateImage() {
+    const text         = textInput.value || "";
+    const fontSize     = parseInt(fontSizeInput.value, 10) || 72;
+    const fontColor    = fontColorInput.value;
+    const textAlign    = textAlignSelect.value;   // left/center/right
+    const direction    = directionSelect.value;   // horizontal/vertical
+    let userScale      = parseFloat(scaleInput.value);
+    if (isNaN(userScale) || userScale <= 0) userScale = 1;
+
+    const autoFit      = autoFitCheckbox.checked;
+    const targetWidth  = parseInt(targetWidthInput.value, 10)  || 0;
+    const targetHeight = parseInt(targetHeightInput.value, 10) || 0;
+
+    // 当前应使用的 font-family
+    const fontFamily = dynamicFontName ? dynamicFontName : currentFontFamily;
+
+    // 在 scale=1 下测量文字尺寸
+    const ctx = previewCanvas.getContext("2d");
+    ctx.font = `${fontSize}px "${fontFamily}"`;
+
+    let rawWidth  = 0;
+    let rawHeight = 0;
+    const padding = 10;
+
+    if (direction === "horizontal") {
+      ctx.textBaseline = "middle";
+      ctx.textAlign    = textAlign;
+
+      const textMetrics = ctx.measureText(text);
+      rawWidth  = Math.ceil(textMetrics.width);
+      rawHeight = fontSize;
+    } else {
+      // 竖排：逐字符测量最大宽度 & 总高度
+      ctx.textBaseline = "top";
+      const chars = text.split("");
+
+      let maxCharWidth = 0;
+      chars.forEach(ch => {
+        const w = ctx.measureText(ch).width;
+        if (w > maxCharWidth) {
+          maxCharWidth = w;
+        }
+      });
+      const lineHeight = fontSize;
+      rawWidth  = Math.ceil(maxCharWidth);
+      rawHeight = lineHeight * chars.length;
+    }
+
+    // 基础尺寸（不含缩放）
+    const baseWidth  = rawWidth  + padding * 2;
+    const baseHeight = rawHeight + padding * 2;
+
+    // 若选择了自动适配
+    let finalScale = userScale;
+    if (autoFit && targetWidth > 0 && targetHeight > 0) {
+      const scaleX = targetWidth  / baseWidth;
+      const scaleY = targetHeight / baseHeight;
+      finalScale = Math.min(scaleX, scaleY);
+    }
+
+    const finalWidth  = Math.round(baseWidth  * finalScale);
+    const finalHeight = Math.round(baseHeight * finalScale);
+
+    // 设置 Canvas 大小
+    previewCanvas.width  = finalWidth;
+    previewCanvas.height = finalHeight;
+
+    // 开始真正绘制
+    const newCtx = previewCanvas.getContext("2d");
+    if (finalScale !== 1) {
+      newCtx.scale(finalScale, finalScale);
+    }
+    newCtx.font      = `${fontSize}px "${fontFamily}"`;
+    newCtx.fillStyle = fontColor;
+
+    if (direction === "horizontal") {
+      newCtx.textBaseline = "middle";
+      newCtx.textAlign    = textAlign;
+
+      let x;
+      if (textAlign === "left") {
+        x = padding;
+      } else if (textAlign === "center") {
+        x = (rawWidth + padding * 2) / 2;
+      } else {
+        x = rawWidth + padding;
+      }
+      const y = (rawHeight + padding * 2) / 2;
+
+      newCtx.fillText(text, x, y);
+
+    } else {
+      // 竖排
+      const chars = text.split("");
+      const lineHeight = fontSize;
+
+      newCtx.textBaseline = "top";
+      // 水平对齐
+      if (textAlign === "left") {
+        newCtx.textAlign = "left";
+      } else if (textAlign === "center") {
+        newCtx.textAlign = "center";
+      } else {
+        newCtx.textAlign = "right";
+      }
+
+      chars.forEach((ch, idx) => {
+        const y = padding + idx * lineHeight;
+        let x;
+        if (textAlign === "left") {
+          x = padding;
+        } else if (textAlign === "center") {
+          x = (rawWidth + padding * 2) / 2;
+        } else {
+          x = rawWidth + padding;
+        }
+        newCtx.fillText(ch, x, y);
+      });
+    }
+
+    // 显示当前图像尺寸
+    sizeInfo.textContent = `${finalWidth} px × ${finalHeight} px`;
+
+    // 生成 PNG 下载链接
+    const dataURL = previewCanvas.toDataURL("image/png");
+    downloadLink.href = dataURL;
+    downloadLink.style.display = "inline-block";
+  }
+</script>
+</body>
+</html>
