@@ -4,13 +4,18 @@
 (function() {
   const LINKS = [
   {
-    "name": "系统结构题目",
-    "link": "latex-image.html",
+    "name": "ai搜索",
+    "link": "ai-search.html",
     "desc": ""
   },
   {
-    "name": "编写调研多平台商城货品订单关联可行性报告",
-    "link": "report.html",
+    "name": "概率论速成例题",
+    "link": "gll-some-quiz.html",
+    "desc": ""
+  },
+  {
+    "name": "导出样式测试",
+    "link": "test.html",
     "desc": ""
   }
 ];
