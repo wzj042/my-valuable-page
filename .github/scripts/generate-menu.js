@@ -104,9 +104,14 @@ function generateSubIndex(subDirPath) {
         continue;
       }
       const filePath = path.join(subDirPath, f.name);
-      const linkRel = path.relative(repoRoot, filePath).replace(/\\/g, '/');
+      
+      // 注意为当前文件的相对目录而不是仓库的
+      // 如当前位置为 pages/@collection/index.html, 其索引的应该不包含相同的pages/@collection/路由
+      const linkRel = path.relative(subDirPath, filePath).replace(/\\/g, '/');
+      // const linkRel = path.relative(repoRoot, filePath).replace(/\\/g, '/');
       const item = parseHtmlMeta(filePath, linkRel);
       if (item) childLinks.push(item);
+
     }
   }
 
@@ -133,6 +138,7 @@ function generateSubIndex(subDirPath) {
  * 覆盖生成 JS (menu.js 或 sub-menu.js)，内含链接数组与渲染
  */
 function generateMenuJs(jsFilePath, linkEntries) {
+  
   const jsContent = `
 /**
  * 自动生成的脚本, 包含链接数组 + 渲染逻辑
