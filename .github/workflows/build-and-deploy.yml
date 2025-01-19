@@ -1,0 +1,68 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write  # 需要写权限以便自动commit & push
+  pages: write
+  id-token: write
+
+jobs:
+  generate-menu:
+    runs-on: ubuntu-latest
+    steps:
+      # 1) 拉取仓库
+      - uses: actions/checkout@v2
+
+      # 2) 设置 Node
+      - name: Setup Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18'
+
+      # 3) 安装依赖 (cheerio)
+      - name: Install dependencies
+        run: |
+          npm install cheerio
+
+      # 4) 运行脚本，生成/更新索引
+      - name: Generate indexes
+        run: |
+          node .github/scripts/generate-menu.js
+
+      # 5) 如果有变动，则自动提交
+      - name: Commit changes
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add -A
+          if [ -n "$(git status --porcelain)" ]; then
+            git commit -m "chore: auto-generate indexes"
+            git push
+          else
+            echo "No changes to commit."
+  
+  deploy:
+    # 要等 generate-menu 结束后再执行
+    needs: generate-menu
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v2
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # 这里要上传你要部署的目录或文件
+          # 如果你想部署整个仓库根目录，就写 .
+          path: '.'
+      
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
