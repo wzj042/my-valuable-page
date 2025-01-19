@@ -4,19 +4,14 @@
 (function() {
   const LINKS = [
   {
-    "name": "子索引: @collection",
-    "link": "pages/@collection/",
-    "desc": "收录 @collection 下所有HTML"
+    "name": "系统结构题目",
+    "link": "latex-image.html",
+    "desc": ""
   },
   {
-    "name": "子索引: @siyuan",
-    "link": "pages/@siyuan/",
-    "desc": "收录 @siyuan 下所有HTML"
-  },
-  {
-    "name": "透明背景 PNG 文本生成器",
-    "link": "pages/get-font-text-img/index.html",
-    "desc": "个人用于生成像素字体"
+    "name": "编写调研多平台商城货品订单关联可行性报告",
+    "link": "report.html",
+    "desc": ""
   }
 ];
   window.addEventListener('DOMContentLoaded', () => {
