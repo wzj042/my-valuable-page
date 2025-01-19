@@ -1,13 +1,13 @@
 name: Generate Menu
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
       # 1) 检出仓库代码
       - uses: actions/checkout@v2
@@ -16,7 +16,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v2
         with:
-          node-version: '18'
+          node-version: "18"
 
       # 3) 安装脚本依赖 (cheerio)
       - name: Install dependencies
@@ -27,7 +27,7 @@ jobs:
       - name: Generate indexes
         run: |
           node .github/scripts/generate-menu.js
-      
+
       # 5) 提交变更并推送
       - name: Commit changes
         run: |
@@ -40,3 +40,4 @@ jobs:
             git push
           else
             echo "No changes to commit."
+          fi
