@@ -1,33 +1,14 @@
-<!DOCTYPE html><html lang="zh-CN"><head>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>目录索引</title>
-  <meta name="description" content="网站目录索引">
 </head>
 <body>
   <h1>目录索引</h1>
   <ul id="fileList"></ul>
-  <!-- script, 根据字符列表渲染超链接列表 -->
-  <script>
-
-    const fileList = document.getElementById('fileList');
-    const links = [
-      ['收藏索引', 'pages/collection/', '网站目录索引'],
-      ['透明背景 PNG 文本生成器', 'pages/get-font-text-img/', '个人用于生成像素字体']
-    ];
-    links.forEach(([name, link, title]) => {
-      const li = document.createElement('li');
-      const a = document.createElement('a');
-      a.href = link;
-      a.textContent = name;
-      a.title = title;
-      li.appendChild(a);
-      fileList.appendChild(li);
-    });
-
-</script>
-
-
-
-<script src="menu.js?ts=1737315943372"></script>
-</body></html>
+  <!-- 引入脚本, 带时间戳避免缓存 -->
+  <script src="menu.js?ts=2025-01-19T19:50:50.755Z"></script>
+</body>
+</html>
