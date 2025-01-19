@@ -44,6 +44,7 @@ jobs:
             git push
           else
             echo "No changes to commit."
+          fi
   
   deploy:
     # 要等 generate-menu 结束后再执行
