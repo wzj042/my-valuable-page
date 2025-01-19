@@ -1,0 +1,43 @@
+name: Generate Menu
+on:
+  push:
+    branches: [ "main" ]  # 或根据自己需求修改
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 1) 拉取当前仓库代码
+      - uses: actions/checkout@v2
+
+      # 2) 安装 Node（如需）
+      - name: Setup Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: 16
+
+      # 3) 安装依赖（如果脚本需要外部依赖，比如 `npm install cheerio`）
+      - name: Install dependencies
+        run: |
+          npm install cheerio
+
+      # 4) 运行脚本，生成/更新 README.md 和 index.html
+      - name: Generate README and index.html
+        run: |
+          node .github/scripts/generate-menu.js
+      
+      # 5) 提交更新后的 README.md 和 index.html
+      - name: Commit changes
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add README.md index.html
+          # 如果有变化就提交
+          if [ -n "$(git status --porcelain)" ]; then
+            git commit -m "chore: update menu automatically"
+            git push
+          else
+            echo "No changes to commit."
+          fi
