@@ -11,11 +11,11 @@
   <ul id="fileList"></ul>
   <!-- script, 根据字符列表渲染超链接列表 -->
   <script>
+
     const fileList = document.getElementById('fileList');
     const links = [
-      // name, link, title
-      ['字体图片生成', 'tools/get-font-text-img', '个人用于生成像素字体']
-    ]
+      ["透明背景 PNG 文本生成器", "home/runner/work/my-valuable-page/my-valuable-page/tools/get-font-text-img/", "个人用于生成像素字体"]
+    ];
     links.forEach(([name, link, title]) => {
       const li = document.createElement('li');
       const a = document.createElement('a');
@@ -25,6 +25,7 @@
       li.appendChild(a);
       fileList.appendChild(li);
     });
-  </script>
+
+</script>
 </body>
 </html>
