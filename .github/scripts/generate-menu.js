@@ -15,12 +15,10 @@ const cheerio = require('cheerio');
 // 仓库根目录 => 上两级
 const repoRoot = path.join(__dirname, '..', '..');  
 
-// 指向 repoRoot 下的 tools/
-const baseDir = path.join(repoRoot, 'tools');
+const baseDir = path.join(repoRoot, 'pages');
 
 const htmlFiles = [];
 
-// 递归扫描 tools 下面的所有文件/文件夹
 function scanDir(dir) {
   const files = fs.readdirSync(dir, { withFileTypes: true });
   files.forEach((f) => {
@@ -66,45 +64,6 @@ htmlFiles.forEach((filePath) => {
   });
 });
 
-// ---------- 3) 生成 README.md 的菜单 ----------
-const readmePath = path.join(repoRoot , 'README.md');
-let readmeContent = '';
-
-if (fs.existsSync(readmePath)) {
-  readmeContent = fs.readFileSync(readmePath, 'utf8');
-}
-
-// 在 README.md 里插入或替换一个 "# MENU" 段落
-// 约定以 `# MENU` 开头，后续到下一个空行或文件结尾前，把它全部替换
-const MENU_START = '# MENU';
-const lines = readmeContent.split(/\r?\n/);
-const startIndex = lines.findIndex((l) => l.trim().startsWith(MENU_START));
-
-let newMenuSection = [MENU_START, ''];
-linkEntries.forEach(({ name, link, desc }) => {
-  // Markdown 格式: - [标题](链接 "描述")
-  newMenuSection.push(`- [${name}](${link} "${desc}")`);
-});
-newMenuSection.push('');
-
-// 如果找到了现有的 MENU，就替换，否则插到文件末尾
-if (startIndex >= 0) {
-  // 找到下一段空行或文件结尾
-  let endIndex = startIndex + 1;
-  while (endIndex < lines.length && lines[endIndex].trim() !== '') {
-    endIndex++;
-  }
-  // 替换 [startIndex, endIndex)
-  const before = lines.slice(0, startIndex);
-  const after = lines.slice(endIndex);
-  readmeContent = [...before, ...newMenuSection, ...after].join('\n');
-} else {
-  // 如果没找到，则直接在末尾追加
-  readmeContent += '\n' + newMenuSection.join('\n') + '\n';
-}
-
-// 写回 README.md
-fs.writeFileSync(readmePath, readmeContent, 'utf8');
 
 // ---------- 4) 生成 index.html (根目录) 的索引 ----------
 const indexHtmlPath = path.join(repoRoot , 'index.html');
@@ -147,7 +106,6 @@ if (!fs.existsSync(indexHtmlPath)) {
 
 // 读入现有 index.html
 let indexHtmlContent = fs.readFileSync(indexHtmlPath, 'utf8');
-const $root = cheerio.load(indexHtmlContent);
 
 // 找到 <script> 中的 `const links = [...]`
 /**
@@ -158,7 +116,10 @@ const linksArrayStr = linkEntries
   .map((entry) => {
     // name, link, desc
     // 注意要转义内部引号
-    return `["${entry.name}", "${entry.link}", "${entry.desc}"]`;
+    // 获取 repo 下的相对链接
+    // 如/wzj042/my-valuable-page/blob/main/home/runner/work/my-valuable-page/my-valuable-page/pages/get-font-text-img -> pages/get-font-text-img
+    const relativeLink = entry.link.replace(repoRoot, '');
+    return `['${entry.name}', '${relativeLink}', '${entry.desc.replace(/'/g, "\\'")}']`;
   })
   .join(',\n      ');
 
@@ -186,4 +147,4 @@ indexHtmlContent = indexHtmlContent.replace(
 
 fs.writeFileSync(indexHtmlPath, indexHtmlContent, 'utf8');
 
-console.log('README.md 和 index.html 已更新。');
+console.log('index.html 已更新。');
