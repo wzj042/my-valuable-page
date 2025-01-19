@@ -8,7 +8,10 @@ const cheerio = require('cheerio');
  * 假定你的子目录都在 "tools" 下面，每个子目录都有一个 index.html
  * 如果结构不一样，可自行修改。
  */
-const baseDir = path.join(__dirname, 'tools');
+// __dirname => /home/runner/work/<repo>/<repo>/.github/scripts
+// 那么两次 ../ 就能到达仓库根
+const baseDir = path.join(__dirname, '..', '..');
+
 const htmlFiles = [];
 
 // 递归扫描 tools 下面的所有文件/文件夹
