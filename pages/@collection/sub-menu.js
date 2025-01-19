@@ -7,6 +7,11 @@
     "name": "ai搜索",
     "link": "pages/@collection/ai-search.html",
     "desc": "网站目录索引"
+  },
+  {
+    "name": "子索引: @collection",
+    "link": "pages/@collection/index.html",
+    "desc": ""
   }
 ];
   window.addEventListener('DOMContentLoaded', () => {
