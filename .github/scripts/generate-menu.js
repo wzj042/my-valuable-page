@@ -163,7 +163,7 @@ function generateMenuJs(jsFilePath, linkEntries) {
  * 覆盖(或新建) index.html：基本结构 + 时间戳脚本
  */
 function ensureIndexHtml(htmlPath, pageTitle, scriptName) {
-  const ts = new Date().toISOString();
+  const ts = new Date().getTime();
   const template = `
 <!DOCTYPE html>
 <html lang="zh-CN">

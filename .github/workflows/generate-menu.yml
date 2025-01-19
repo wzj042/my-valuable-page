@@ -1,39 +1,38 @@
 name: Generate Menu
 on:
   push:
-    branches: ["main"]
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    
     steps:
-      # 1) 检出仓库代码
+      # 1) 拉取仓库
       - uses: actions/checkout@v2
 
       # 2) 设置 Node
       - name: Setup Node
         uses: actions/setup-node@v2
         with:
-          node-version: "18"
+          node-version: '18'
 
-      # 3) 安装脚本依赖 (cheerio)
+      # 3) 安装依赖
       - name: Install dependencies
         run: |
           npm install cheerio
 
-      # 4) 运行脚本，自动生成/更新索引文件
+      # 4) 执行脚本
       - name: Generate indexes
         run: |
           node .github/scripts/generate-menu.js
-
-      # 5) 提交变更并推送
+      
+      # 5) 提交并推送
       - name: Commit changes
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
-          # 这里可以用 git add -A 一次性添加所有改动
           git add -A
           if [ -n "$(git status --porcelain)" ]; then
             git commit -m "chore: auto-generate indexes"
