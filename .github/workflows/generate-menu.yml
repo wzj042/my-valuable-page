@@ -31,8 +31,8 @@ jobs:
       # 5) 提交更新后的 README.md 和 index.html
       - name: Commit changes
         run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
+          git config user.name wzj042
+          git config user.email wzj042@gmail.com
           git add README.md index.html
           # 如果有变化就提交
           if [ -n "$(git status --porcelain)" ]; then
