@@ -3,97 +3,106 @@ const fs = require('fs');
 const path = require('path');
 const cheerio = require('cheerio');
 
-// 1) 定位仓库根目录
+// 1) 仓库根目录
 const repoRoot = path.join(__dirname, '..', '..');
 const pagesDir = path.join(repoRoot, 'pages');
 
-// 2) 准备收集主索引的链接列表: [{ name, link, desc }, ...]
+// 2) 主索引的链接列表
 const mainLinks = [];
 
-// 3) 扫描 pages/ 下所有文件和文件夹
+// 如果 pages/ 不存在就退出
 if (!fs.existsSync(pagesDir)) {
   console.log('[Warn] pages/ 目录不存在，脚本跳过。');
-  process.exit(0); // 或者直接退出
+  process.exit(0);
 }
 
-// 3.1) 读取根层级下的条目
-const entries = fs.readdirSync(pagesDir, { withFileTypes: true });
+// 3) 收集pages/根下的 .html 文件 -> mainLinks
+const topEntries = fs.readdirSync(pagesDir, { withFileTypes: true });
 
-// 3.2) 处理顶层(非 @ 开头)的 .html 文件
-for (const entry of entries) {
+// 3.1) 顶层 .html 文件
+for (const entry of topEntries) {
   if (entry.isFile() && entry.name.endsWith('.html')) {
-    // 例: pages/demo.html
+    // e.g. pages/demo.html
     const filePath = path.join(pagesDir, entry.name);
-    const item = parseHtmlMeta(filePath, 'pages/' + entry.name);
+    const linkRel = `pages/${entry.name}`; // 相对于仓库根
+    const item = parseHtmlMeta(filePath, linkRel);
     if (item) {
       mainLinks.push(item);
     }
   }
 }
 
-// 3.3) 处理以 @ 开头的子目录
-for (const entry of entries) {
-  if (entry.isDirectory() && entry.name.startsWith('@')) {
-    const subDirPath = path.join(pagesDir, entry.name);
-    const subIndexInfo = generateSubIndex(subDirPath);
-    if (subIndexInfo) {
-      // 将子目录索引也加入主索引
-      mainLinks.push({
-        name: subIndexInfo.title,
-        link: `pages/${entry.name}/`,
-        desc: subIndexInfo.desc
-      });
+// 3.2) 顶层子目录
+for (const entry of topEntries) {
+  if (entry.isDirectory()) {
+    const subDirName = entry.name; // 例如 "xxxx" 或 "@collection"
+    const subDirPath = path.join(pagesDir, subDirName);
+
+    // 如果以 '@' 开头 => 生成子索引
+    if (subDirName.startsWith('@')) {
+      const subIndexInfo = generateSubIndex(subDirPath);
+      if (subIndexInfo) {
+        // 把子索引当一条链接加到主索引
+        mainLinks.push({
+          name: subIndexInfo.title,       // "子索引: @xxx"
+          link: `pages/${subDirName}/`,   // 目录链接
+          desc: subIndexInfo.desc
+        });
+      }
+    } else {
+      // 否则(非@开头)，只查看该目录下的 index.html
+      const possibleIndex = path.join(subDirPath, 'index.html');
+      if (fs.existsSync(possibleIndex)) {
+        // 在主索引里加一条（名字取其 <title>，链接: pages/xxxx/index.html）
+        const linkRel = path.relative(repoRoot, possibleIndex).replace(/\\/g, '/');
+        const item = parseHtmlMeta(possibleIndex, linkRel);
+        if (item) {
+          mainLinks.push(item);
+        }
+      }
     }
   }
 }
 
-// 4) 生成/更新主索引 (根目录) index.html
+// 4) 覆盖生成“主索引” (仓库根) index.html
 const indexHtmlPath = path.join(repoRoot, 'index.html');
 ensureIndexHtml(indexHtmlPath, '目录索引', 'menu.js');
 
-// 5) 生成/更新主索引脚本 menu.js
+// 5) 覆盖生成“主索引”脚本 menu.js
 const menuJsPath = path.join(repoRoot, 'menu.js');
 generateMenuJs(menuJsPath, mainLinks);
 
-// ------ 辅助函数们 ------
+// ----------------- 辅助函数们 -----------------
 
 /**
- * 解析HTML文件的 <title> 与 <meta name="description">，返回 { name, link, desc }
- * @param {string} filePath 绝对路径
- * @param {string} relativeLink 相对于仓库根的链接
+ * 从HTML读取 <title>, <meta name="description">，返回 { name, link, desc }
  */
 function parseHtmlMeta(filePath, relativeLink) {
   if (!fs.existsSync(filePath)) return null;
-
   const raw = fs.readFileSync(filePath, 'utf8');
   const $ = cheerio.load(raw);
 
   const title = $('title').text().trim() || path.basename(filePath);
   const desc = $('meta[name="description"]').attr('content') || '';
 
-  return {
-    name: title,
-    link: relativeLink,
-    desc
-  };
+  return { name: title, link: relativeLink, desc };
 }
 
 /**
- * 为 @ 开头的子目录生成子索引 index.html 和 sub-menu.js
- * @param {string} subDirPath 绝对路径 (e.g. /.../pages/@collection)
- * @return { title, desc } 用于在主索引中引用
+ * 生成子索引 (index.html + sub-menu.js) for `@xxx` 文件夹
+ * 并收录该文件夹下所有 .html(排除本身的 index.html) 到 childLinks。
+ * 返回 { title, desc } 供主索引使用。
  */
 function generateSubIndex(subDirPath) {
-  if (!fs.existsSync(subDirPath)) return null;
-
   const allFiles = fs.readdirSync(subDirPath, { withFileTypes: true });
   const childLinks = [];
 
-  // 收集所有 .html (排除自带 index.html）
   for (const f of allFiles) {
     if (f.isFile() && f.name.endsWith('.html')) {
-      // if (f.name === 'index.html') continue;
-
+      // 跳过本子目录的index.html(避免自我链接套娃)
+      if (f.name === 'index.html') {
+        continue;
+      }
       const filePath = path.join(subDirPath, f.name);
       const linkRel = path.relative(repoRoot, filePath).replace(/\\/g, '/');
       const item = parseHtmlMeta(filePath, linkRel);
@@ -101,17 +110,16 @@ function generateSubIndex(subDirPath) {
     }
   }
 
-  // 目录名 (带@)
+  // 子索引标题，如 "子索引: @collection"
   const dirName = path.basename(subDirPath);
-  // 例如: "子索引: @collection"
   const subIndexTitle = `子索引: ${dirName}`;
   const subIndexDesc = `收录 ${dirName} 下所有HTML`;
 
-  // 覆盖生成 index.html
+  // 生成/覆盖 subDirPath/index.html
   const subIndexPath = path.join(subDirPath, 'index.html');
   ensureIndexHtml(subIndexPath, subIndexTitle, 'sub-menu.js');
 
-  // 覆盖生成 sub-menu.js
+  // 生成/覆盖 subDirPath/sub-menu.js
   const subMenuPath = path.join(subDirPath, 'sub-menu.js');
   generateMenuJs(subMenuPath, childLinks);
 
@@ -122,9 +130,7 @@ function generateSubIndex(subDirPath) {
 }
 
 /**
- * 覆盖生成 JS 文件 (menu.js / sub-menu.js)，包含渲染逻辑
- * @param {string} jsFilePath 
- * @param {Array<{ name:string, link:string, desc:string }>} linkEntries 
+ * 覆盖生成 JS (menu.js 或 sub-menu.js)，内含链接数组与渲染
  */
 function generateMenuJs(jsFilePath, linkEntries) {
   const jsContent = `
@@ -154,13 +160,10 @@ function generateMenuJs(jsFilePath, linkEntries) {
 }
 
 /**
- * 覆盖(或新建)一个 index.html
- * 内容是固定模板 + 时间戳脚本，原文件会被直接覆盖
+ * 覆盖(或新建) index.html：基本结构 + 时间戳脚本
  */
 function ensureIndexHtml(htmlPath, pageTitle, scriptName) {
-  const ts = new Date(); // 时间戳
-
-  // 直接覆盖式写入
+  const ts = new Date().toISOString();
   const template = `
 <!DOCTYPE html>
 <html lang="zh-CN">
