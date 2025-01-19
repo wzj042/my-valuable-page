@@ -118,8 +118,8 @@ const linksArrayStr = linkEntries
     // 注意要转义内部引号
     // 获取 repo 下的相对链接
     // 如/wzj042/my-valuable-page/blob/main/home/runner/work/my-valuable-page/my-valuable-page/pages/get-font-text-img -> pages/get-font-text-img
-    // home/runner/work/my-valuable-page/my-valuable-page/pages/collection/ -> /pages/collection/
-    const relativeLink = relativeLink.replace(/.*?\/my-valuable-page\//, '/');
+    const relativeLink = entry.link.split('/my-valuable-page/my-valuable-page/')[1] || '';
+
     return `['${entry.name}', '${relativeLink}', '${entry.desc.replace(/'/g, "\\'")}']`;
   })
   .join(',\n      ');
