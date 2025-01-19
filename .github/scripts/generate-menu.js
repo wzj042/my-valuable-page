@@ -10,7 +10,13 @@ const cheerio = require('cheerio');
  */
 // __dirname => /home/runner/work/<repo>/<repo>/.github/scripts
 // 那么两次 ../ 就能到达仓库根
-const baseDir = path.join(__dirname, '..', '..');
+
+
+// 仓库根目录 => 上两级
+const repoRoot = path.join(__dirname, '..', '..');  
+
+// 指向 repoRoot 下的 tools/
+const baseDir = path.join(repoRoot, 'tools');
 
 const htmlFiles = [];
 
@@ -61,7 +67,7 @@ htmlFiles.forEach((filePath) => {
 });
 
 // ---------- 3) 生成 README.md 的菜单 ----------
-const readmePath = path.join(__dirname, 'README.md');
+const readmePath = path.join(repoRoot , 'README.md');
 let readmeContent = '';
 
 if (fs.existsSync(readmePath)) {
@@ -101,7 +107,7 @@ if (startIndex >= 0) {
 fs.writeFileSync(readmePath, readmeContent, 'utf8');
 
 // ---------- 4) 生成 index.html (根目录) 的索引 ----------
-const indexHtmlPath = path.join(__dirname, 'index.html');
+const indexHtmlPath = path.join(repoRoot , 'index.html');
 
 // 先定义一个基本模板，如果不存在就新建：
 let indexHtmlTemplate = `<!DOCTYPE html>
