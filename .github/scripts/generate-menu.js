@@ -92,7 +92,7 @@ function generateSubIndex(subDirPath) {
   // 收集所有 .html (排除自带 index.html）
   for (const f of allFiles) {
     if (f.isFile() && f.name.endsWith('.html')) {
-      if (f.name === 'index.html') continue;
+      // if (f.name === 'index.html') continue;
 
       const filePath = path.join(subDirPath, f.name);
       const linkRel = path.relative(repoRoot, filePath).replace(/\\/g, '/');
@@ -158,7 +158,7 @@ function generateMenuJs(jsFilePath, linkEntries) {
  * 内容是固定模板 + 时间戳脚本，原文件会被直接覆盖
  */
 function ensureIndexHtml(htmlPath, pageTitle, scriptName) {
-  const ts = new Date().toISOString(); // 时间戳
+  const ts = new Date(); // 时间戳
 
   // 直接覆盖式写入
   const template = `
