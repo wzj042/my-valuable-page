@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ai搜索</title>
+  <meta name="description" content="网站目录索引">
+</head>
+<body>
+  <ul id="linkList"></ul>
+  <script>
+
+    const linkList = document.getElementById('linkList');
+    const links = [
+      ["大同搜索：中英资料采集", "https://datong.info", ""],
+      ["秘塔：关联资料采集汇总", "https://metaso.cn", ""],
+      ["hika：局部深入和细分线索", "https://hika.fyi", ""],
+      ["ai搜索引擎盘点-知乎", "https://zhuanlan.zhihu.com/p/685713871", ""],
+    ];
+    links.forEach(([name, link, title]) => {
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = link;
+      a.textContent = name;
+      a.title = title;
+      li.appendChild(a);
+      linkList.appendChild(li);
+    });
+
+</script>
+</body>
+</html>
